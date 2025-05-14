@@ -1,0 +1,90 @@
+zabbix_export:
+  version: '7.2'
+  template_groups:
+    - uuid: c2c162144c2d4c5491c8801193af4945
+      name: Templates/Cloud
+  templates:
+    - uuid: 12361b10b9ab41fb96ae023f8cbcec69
+      template: 'Atlassian Status Page'
+      name: 'Atlassian Status Page'
+      description: |
+        Atlassian Status Page Zabbix Integration.
+        Triggers for operational, degraded_performance, partial_outage and major_outage are disabled by default
+      groups:
+        - name: Templates/Cloud
+      discovery_rules:
+        - uuid: e88ac028de374777946398912311f36f
+          name: 'Status Page Components Discovery'
+          type: HTTP_AGENT
+          key: status.discovery
+          item_prototypes:
+            - uuid: 51cf953db2a743758583279eacbb3a4c
+              name: '{#COMPONENTNAME} Status'
+              type: HTTP_AGENT
+              key: 'statuspage.component.status[{#COMPONENTID}]'
+              trends: '0'
+              valuemap:
+                name: 'Status Mapping'
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$.components[?(@.id=="{#COMPONENTID}")].status'
+                - type: JSONPATH
+                  parameters:
+                    - '$[0]'
+                - type: JAVASCRIPT
+                  parameters:
+                    - |
+                      var status = value.toString().trim();
+                      switch (status) {
+                          case 'operational': return 0;
+                          case 'degraded_performance': return 1;
+                          case 'partial_outage': return 2;
+                          case 'major_outage': return 3;
+                          default: return -1;
+                      }
+              url: '{$STATUSURL}api/v2/summary.json'
+              trigger_prototypes:
+                - uuid: c385bcebdb674deeb2d8dac59dee96e7
+                  expression: 'min(/Atlassian Status Page/statuspage.component.status[{#COMPONENTID}],5m)=1'
+                  name: '{#COMPONENTNAME} Degraded Performance'
+                  status: DISABLED
+                  priority: WARNING
+                - uuid: 2e043388d6dc43c7966c40764b072368
+                  expression: 'min(/Atlassian Status Page/statuspage.component.status[{#COMPONENTID}],5m)=3'
+                  name: '{#COMPONENTNAME} Major Outage'
+                  status: DISABLED
+                  priority: HIGH
+                - uuid: 0d4d4c5cfb604d4dbf919428b45acea3
+                  expression: 'min(/Atlassian Status Page/statuspage.component.status[{#COMPONENTID}],5m)=2'
+                  name: '{#COMPONENTNAME} Partial Outage'
+                  status: DISABLED
+                  priority: WARNING
+          url: '{$STATUSURL}api/v2/summary.json'
+          lld_macro_paths:
+            - lld_macro: '{#COMPONENTID}'
+              path: $.id
+            - lld_macro: '{#COMPONENTNAME}'
+              path: $.name
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.components
+      macros:
+        - macro: '{$STATUSURL}'
+          value: 'https://www.githubstatus.com/'
+          description: 'Base URL of the status page (Including the trailing /)'
+      valuemaps:
+        - uuid: 14969d23b3d444aebb0f0017bbb0edcf
+          name: 'Status Mapping'
+          mappings:
+            - value: '0'
+              newvalue: Operational
+            - value: '1'
+              newvalue: Degraded
+            - value: '2'
+              newvalue: 'Partial Outage'
+            - value: '3'
+              newvalue: 'Major Outage'
+            - value: '-1'
+              newvalue: Unknown
