@@ -27,11 +27,11 @@ This is a Zabbix template for monitoring components listed on an Atlassian-power
 
 ## Using the Template
 
-1. Create a host 
-1a. Hostname (Eg. Jira)
-1b. Template: Atlassian Status Page
-1c. Host Group (Eg. Applications)
-2. Macros > Inherited and host macros
+1. Create a host  
+1a. Hostname (Eg. Jira)  
+1b. Template: Atlassian Status Page  
+1c. Host Group (Eg. Applications)  
+2. Macros > Inherited and host macros  
 2a. {$STATUSURL} = Status Page url with trailing / (eg. https://www.githubstatus.com/)
 
 ## License
